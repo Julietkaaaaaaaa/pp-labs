@@ -1,0 +1,324 @@
+//1
+void print_numbers(int number) {
+    for (int i = 0; i < 100; ++i) {
+        std::cout << number;
+    }
+}
+
+int main() {
+    std::cout << "Завдання 1.2.1\n";
+
+    std::thread t1(print_numbers, 1);
+    std::thread t2(print_numbers, 2);
+
+
+    std::cout << "\nГоловний потік main() завершує роботу\n";
+
+    return 0;
+}
+
+
+
+//2
+void print_numbers(int number) {
+    for (int i = 0; i < 100; ++i) {
+        std::cout << number;
+    }
+}
+
+int main() {
+    std::cout << "Завдання 1.2.2\n";
+
+    std::thread t1(print_numbers, 1);
+    std::thread t2(print_numbers, 2);
+
+    t1.detach();
+    t2.detach();
+
+    std::cout << "\nГоловний потік main() завершує роботу\n";
+
+    return 0;
+}
+
+
+
+//3
+std::list<int> l;
+
+void AddToList(int startVal) {
+    for (int i = 0; i < 10; ++i) {
+        int valToAdd = startVal + i;
+        l.push_back(valToAdd); 
+
+        std::string msg = "(AddToList) Додано елемент: " + std::to_string(valToAdd) + "\n";
+        std::cout << msg; 
+    }
+}
+
+void ListContains(int searchVal) {
+    for (int i = 0; i < 10; ++i) {
+        bool found = (std::find(l.begin(), l.end(), searchVal) != l.end());
+
+        std::string msg = "(ListContains) Спроба " + std::to_string(i + 1) + 
+                          ": Елемент " + std::to_string(searchVal) + 
+                          (found ? " входить\n" : " не входить\n");
+        std::cout << msg; 
+    }
+}
+
+int main() {
+    int startVal = 42;
+
+    std::thread t1(AddToList, startVal);
+    std::thread t2(ListContains, startVal);
+
+    t1.join();
+    t2.join();
+
+    return 0;
+}
+
+
+
+//4
+std::list<int> l;
+std::mutex mtx;
+
+void AddToList(int startVal) {
+    for (int i = 0; i < 10; ++i) {
+        int valToAdd = startVal + i;
+        
+        mtx.lock();
+        l.push_back(valToAdd); 
+        std::string msg = "(AddToList) Додано елемент: " + std::to_string(valToAdd) + "\n";
+        std::cout << msg; 
+        mtx.unlock();
+    }
+}
+
+void ListContains(int searchVal) {
+    for (int i = 0; i < 10; ++i) {
+        mtx.lock();
+        bool found = (std::find(l.begin(), l.end(), searchVal) != l.end());
+
+        std::string msg = "(ListContains) Спроба " + std::to_string(i + 1) + 
+                          ": Елемент " + std::to_string(searchVal) + 
+                          (found ? " входить\n" : " не входить\n");
+        std::cout << msg; 
+        mtx.unlock();
+    }
+}
+
+int main() {
+    std::cout << "Завдання 1.2.4\n";
+    int startVal = 42;
+
+    std::thread t1(AddToList, startVal);
+    std::thread t2(ListContains, startVal);
+
+    t1.join();
+    t2.join();
+
+    return 0;
+}
+
+
+
+//5
+std::list<int> l;
+std::mutex mtx;
+
+void AddToList(int valToAdd) {
+    
+    std::lock_guard<std::mutex> lock(mtx);
+    
+    l.push_back(valToAdd);
+    std::string msg = "(AddToList) Додано елемент: " + std::to_string(valToAdd) + "\n";
+    std::cout << msg;
+}
+
+void ListContains(int searchVal) {
+    std::lock_guard<std::mutex> lock(mtx);
+    
+    bool found = (std::find(l.begin(), l.end(), searchVal) != l.end());
+    std::string msg = "(ListContains) Пошук " + std::to_string(searchVal) + 
+                      (found ? ": є у списку\n" : ": немає у списку\n");
+    std::cout << msg;
+}
+
+int main() {
+    std::cout << "Завдання 1.2.5\n";
+    int startVal = 42;
+
+    for (int i = 0; i < 10; ++i) {
+        std::thread t1(AddToList, startVal + i);
+        
+        std::thread t2(ListContains, startVali);
+
+        t1.detach();
+        t2.detach();
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    return 0;
+}
+
+
+
+//6
+struct someData {
+    std::string name;
+    std::string surname;
+    std::string address;
+    int age = 0;
+
+    void print() const {
+        std::cout << name << " " << surname << " (" << address << ", вік: " << age << ")\n";
+    }
+};
+
+class exchangePerson {
+public:
+    someData data;
+    std::mutex mtx; 
+
+    static void JohnDoe(exchangePerson& person) {
+        std::lock_guard<std::mutex> lock(person.mtx);
+        person.data.name = "John";
+        person.data.surname = "Doe";
+        person.data.address = "Unknown";
+        person.data.age = 120;
+    }
+
+    static void JacobSmith(exchangePerson& person) {
+        std::lock_guard<std::mutex> lock(person.mtx);
+        person.data.name = "Jacob";
+        person.data.surname = "Smith";
+        person.data.address = "Known";
+        person.data.age = 1;
+    }
+
+    static void Swap(exchangePerson& p1, exchangePerson& p2) {
+        if (&p1 == &p2) {
+            std::cout << "(Swap) Спроба обміну об'єкта сам із собою скасована.\n";
+            return;
+        }
+
+        std::lock(p1.mtx, p2.mtx);
+
+        std::lock_guard<std::mutex> lock1(p1.mtx, std::adopt_lock);
+        std::lock_guard<std::mutex> lock2(p2.mtx, std::adopt_lock);
+
+        std::cout << "\nДо обміну\n";
+        std::cout << "Об'єкт 1: "; p1.data.print();
+        std::cout << "Об'єкт 2: "; p2.data.print();
+
+        std::swap(p1.data, p2.data);
+
+        std::cout << "\nПісля обміну\n";
+        std::cout << "Об'єкт 1: "; p1.data.print();
+        std::cout << "Об'єкт 2: "; p2.data.print();
+    }
+};
+
+int main() {
+    std::cout << "Завдання 1.2.6\n";
+
+    exchangePerson ep1;
+    exchangePerson ep2;
+
+    std::thread t1(exchangePerson::JohnDoe, std::ref(ep1));
+    std::thread t2(exchangePerson::JacobSmith, std::ref(ep2));
+
+    t1.detach();
+    t2.detach();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    std::thread t_swap(exchangePerson::Swap, std::ref(ep1), std::ref(ep2));
+
+    t_swap.join();
+
+    return 0;
+}
+
+
+
+//7
+struct someData {
+    std::string name;
+    std::string surname;
+    std::string address;
+    int age = 0;
+
+    void print() const {
+        std::cout << name << " " << surname << " (" << address << ", вік: " << age << ")\n";
+    }
+};
+
+class exchangePerson {
+public:
+    someData data;
+    std::mutex mtx; 
+
+    static void JohnDoe(exchangePerson& person) {
+        std::lock_guard<std::mutex> lock(person.mtx);
+        person.data.name = "John";
+        person.data.surname = "Doe";
+        person.data.address = "Unknown";
+        person.data.age = 120;
+    }
+
+    static void JacobSmith(exchangePerson& person) {
+        std::lock_guard<std::mutex> lock(person.mtx);
+        person.data.name = "Jacob";
+        person.data.surname = "Smith";
+        person.data.address = "Known";
+        person.data.age = 1;
+    }
+
+    static void Swap(exchangePerson& p1, exchangePerson& p2) {
+        if (&p1 == &p2) {
+            std::cout << "(Swap) Спроба обміну об'єкта сам із собою скасована.\n";
+            return;
+        }
+
+        std::unique_lock<std::mutex> lock1(p1.mtx, std::defer_lock);
+        std::unique_lock<std::mutex> lock2(p2.mtx, std::defer_lock);
+
+       
+        std::lock(lock1, lock2);
+
+        std::cout << "\nДо обміну\n";
+        std::cout << "Об'єкт 1: "; p1.data.print();
+        std::cout << "Об'єкт 2: "; p2.data.print();
+
+        std::swap(p1.data, p2.data);
+
+        std::cout << "\nПісля обміну\n";
+        std::cout << "Об'єкт 1: "; p1.data.print();
+        std::cout << "Об'єкт 2: "; p2.data.print();
+    }
+};
+
+int main() {
+    std::cout << "Завдання 1.2.7\n";
+
+    exchangePerson ep1;
+    exchangePerson ep2;
+
+    std::thread t1(exchangePerson::JohnDoe, std::ref(ep1));
+    std::thread t2(exchangePerson::JacobSmith, std::ref(ep2));
+
+    t1.detach();
+    t2.detach();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    std::thread t_swap(exchangePerson::Swap, std::ref(ep1), std::ref(ep2));
+
+    t_swap.join();
+
+    return 0;
+}
+
