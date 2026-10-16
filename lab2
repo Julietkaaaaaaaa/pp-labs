@@ -160,7 +160,6 @@ int main() {
     std::thread t2(ThreadWait, 2);
     std::thread t3(ThreadWait, 3);
 
-    // Від'єднуємо, бо notify_one розбудить лише один потік, інші залишаться чекати
     t1.detach();
     t2.detach();
     t3.detach();
@@ -168,7 +167,6 @@ int main() {
     std::thread tNotify(Notify);
     tNotify.join(); // Головний потік чекає лише Notify
 
-    // Затримка, щоб розбуджений потік встиг вивести текст перед завершенням main
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     return 0;
