@@ -1,0 +1,493 @@
+//1
+
+//#include <iostream>
+//#include <thread>
+//#include <mutex>
+//#include <queue>
+//#include <chrono>
+//#include <string>
+//#include <sstream>
+//#include <Windows.h>
+//
+//std::queue<int> dataQueue;
+//std::mutex mtx;
+//bool flag = false;
+//
+//bool isPrime(int n) {
+//    if (n < 2) return false;
+//    for (int i = 2; i * i <= n; ++i) {
+//        if (n % i == 0) return false;
+//    }
+//    return true;
+//}
+//
+//void DataPreparation() {
+//    std::cout << "Введіть числа через пробіл і натисніть Enter:\n";
+//    std::string line;
+//    if (std::getline(std::cin, line)) {
+//        std::stringstream ss(line);
+//        int val;
+//        while (ss >> val) {
+//            std::lock_guard<std::mutex> lk(mtx);
+//            dataQueue.push(val);
+//        }
+//    }
+//
+//    std::lock_guard<std::mutex> lk(mtx);
+//    flag = true; // Завершено ввід
+//}
+//
+//void DataProcessing() {
+//    std::unique_lock<std::mutex> lk(mtx);
+//    while (!flag) {
+//        lk.unlock();
+//        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+//        lk.lock();
+//    }
+//
+//    std::cout << "Прості числа: ";
+//    while (!dataQueue.empty()) {
+//        int val = dataQueue.front();
+//        dataQueue.pop();
+//        if (isPrime(val)) {
+//            std::cout << val << " ";
+//        }
+//    }
+//    std::cout << "\n";
+//}
+//
+//int main() {
+//    SetConsoleCP(1251);
+//    SetConsoleOutputCP(1251);
+//
+//    std::thread t1(DataPreparation);
+//    t1.detach();
+//
+//    std::thread t2(DataProcessing);
+//    t2.join();
+//
+//    return 0;
+//}
+
+
+//2
+
+//#include <iostream>
+//#include <thread>
+//#include <mutex>
+//#include <condition_variable>
+//#include <chrono>
+//#include <Windows.h>
+//
+//std::mutex mtx;
+//std::condition_variable cv;
+//int i = 0;
+//
+//void Waits(int id) {
+//    std::unique_lock<std::mutex> lk(mtx);
+//    std::cout << "Потік Waits " << id << " входить у стан очікування\n";
+//
+//    cv.wait(lk, [] { return i == 1; });
+//
+//    std::cout << "Потік Waits " << id << " завершив очікування\n";
+//}
+//
+//void Awake() {
+//    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+//    std::cout << "Потік Awake починає повідомляти решту\n";
+//    cv.notify_all();
+//
+//    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+//
+//    {
+//        std::lock_guard<std::mutex> lk(mtx);
+//        i = 1;
+//    }
+//    std::cout << "Повторне повідомлення\n";
+//    cv.notify_all();
+//}
+//
+//int main() {
+//    SetConsoleCP(1251);
+//    SetConsoleOutputCP(1251);
+//
+//    std::thread t1(Waits, 1);
+//    std::thread t2(Waits, 2);
+//    std::thread t3(Waits, 3);
+//    std::thread ta(Awake);
+//
+//    t1.join();
+//    t2.join();
+//    t3.join();
+//    ta.join();
+//
+//    return 0;
+//}
+
+//3
+
+//#include <iostream>
+//#include <thread>
+//#include <mutex>
+//#include <condition_variable>
+//#include <chrono>
+//#include <Windows.h>
+//
+//std::mutex mtx;
+//std::condition_variable cv;
+//int i = 0;
+//
+//void ThreadWait(int id) {
+//    std::unique_lock<std::mutex> lk(mtx);
+//    cv.wait(lk, [] { return i == 1; });
+//    std::cout << "Повідомлення з потоку " << id << "\n";
+//}
+//
+//void Notify() {
+//    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+//    {
+//        std::lock_guard<std::mutex> lk(mtx);
+//        i = 1;
+//    }
+//    cv.notify_one();
+//}
+//
+//int main() {
+//    SetConsoleCP(1251);
+//    SetConsoleOutputCP(1251);
+//
+//    std::thread t1(ThreadWait, 1);
+//    std::thread t2(ThreadWait, 2);
+//    std::thread t3(ThreadWait, 3);
+//
+//    // Від'єднуємо, бо notify_one розбудить лише один потік, інші залишаться чекати
+//    t1.detach();
+//    t2.detach();
+//    t3.detach();
+//
+//    std::thread tNotify(Notify);
+//    tNotify.join(); // Головний потік чекає лише Notify
+//
+//    // Затримка, щоб розбуджений потік встиг вивести текст перед завершенням main
+//    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+//
+//    return 0;
+//}
+
+//4
+
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <string>
+#include <sstream>
+#include <Windows.h>
+
+//std::queue<int> dataQueue;
+//std::mutex mtx;
+//std::condition_variable cv;
+//bool done = false;
+//
+//bool isPrime(int n) {
+//    if (n < 2) return false;
+//    for (int i = 2; i * i <= n; ++i) {
+//        if (n % i == 0) return false;
+//    }
+//    return true;
+//}
+//
+//void DataPreparation() {
+//    std::cout << "Введіть числа через пробіл і натисніть Enter:\n";
+//    std::string line;
+//    if (std::getline(std::cin, line)) {
+//        std::stringstream ss(line);
+//        int val;
+//        while (ss >> val) {
+//            std::lock_guard<std::mutex> lk(mtx);
+//            dataQueue.push(val);
+//            cv.notify_one();
+//        }
+//    }
+//    {
+//        std::lock_guard<std::mutex> lk(mtx);
+//        done = true;
+//    }
+//    cv.notify_one();
+//}
+//
+//void DataProcessing() {
+//    std::unique_lock<std::mutex> lk(mtx);
+//    while (true) {
+//        // Очікування події через умовну змінну
+//        cv.wait(lk, [] { return !dataQueue.empty() || done; });
+//
+//        while (!dataQueue.empty()) {
+//            int val = dataQueue.front();
+//            dataQueue.pop();
+//            lk.unlock();
+//            if (isPrime(val)) {
+//                std::cout << val << " ";
+//            }
+//            lk.lock();
+//        }
+//        if (done && dataQueue.empty()) {
+//            break;
+//        }
+//    }
+//    std::cout << "\n";
+//}
+//
+//int main() {
+//    SetConsoleCP(1251);
+//    SetConsoleOutputCP(1251);
+//
+//    std::thread t1(DataPreparation);
+//    t1.detach();
+//
+//    std::thread t2(DataProcessing);
+//    t2.join();
+//
+//    return 0;
+//}
+
+//5
+#include <iostream>
+#include <future>
+#include <chrono>
+#include <cmath>
+#include <Windows.h>
+
+//long long getNthPrime(int n) {
+//    if (n <= 0) return 0;
+//    int count = 0;
+//    long long num = 1;
+//    while (count < n) {
+//        num++;
+//        bool prime = true;
+//        for (long long i = 2; i * i <= num; ++i) {
+//            if (num % i == 0) {
+//                prime = false;
+//                break;
+//            }
+//        }
+//        if (prime) {
+//            count++;
+//        }
+//    }
+//    return num;
+//}
+//
+//void runTask(std::launch policy) {
+//    int n;
+//    std::cout << "Введіть n (номер простого числа): ";
+//    if (!(std::cin >> n)) return;
+//
+//    auto t_start = std::chrono::high_resolution_clock::now();
+//
+//    std::future<long long> fut = std::async(policy, getNthPrime, n);
+//
+//    std::cout << "Оберіть функцію від n (1 - sqrt, 2 - sin, 3 - ln): ";
+//    int choice;
+//    std::cin >> choice;
+//
+//    if (choice == 1) std::cout << "sqrt(" << n << ") = " << std::sqrt(n) << "\n";
+//    else if (choice == 2) std::cout << "sin(" << n << ") = " << std::sin(n) << "\n";
+//    else if (choice == 3) std::cout << "ln(" << n << ") = " << std::log(n) << "\n";
+//
+//    std::cout << "Очікування результату...\n";
+//    long long primeResult = fut.get();
+//
+//    auto t_end = std::chrono::high_resolution_clock::now();
+//    double elapsed = std::chrono::duration<double, std::milli>(t_end - t_start).count();
+//
+//    std::cout << n << "-е просте число: " << primeResult << "\n";
+//    std::cout << "Час виконання: " << elapsed << " мс\n\n";
+//}
+//
+//int main() {
+//    SetConsoleCP(1251);
+//    SetConsoleOutputCP(1251);
+//
+//    std::cout << "Режим std::launch::deferred:\n";
+//    runTask(std::launch::deferred);
+//
+//    std::cout << "Режим std::launch::async:\n";
+//    runTask(std::launch::async);
+//
+//    return 0;
+//}
+
+
+//6
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <deque>
+#include <future>
+#include <vector>
+#include <Windows.h>
+
+//std::deque<std::packaged_task<long long()>> taskDeque;
+//std::deque<int> numDeque;
+//std::mutex mtx;
+//std::condition_variable cv;
+//bool done = false;
+//
+//long long getNthPrime(int n) {
+//    if (n <= 0) return 0;
+//    int count = 0;
+//    long long num = 1;
+//    while (count < n) {
+//        num++;
+//        bool prime = true;
+//        for (long long i = 2; i * i <= num; ++i) {
+//            if (num % i == 0) {
+//                prime = false;
+//                break;
+//            }
+//        }
+//        if (prime) {
+//            count++;
+//        }
+//    }
+//    return num;
+//}
+//
+//void Worker() {
+//    while (true) {
+//        std::packaged_task<long long()> task;
+//        int n = 0;
+//        {
+//            std::unique_lock<std::mutex> lk(mtx);
+//            cv.wait(lk, [] { return !taskDeque.empty() || done; });
+//            if (done && taskDeque.empty()) {
+//                break;
+//            }
+//            task = std::move(taskDeque.front());
+//            taskDeque.pop_front();
+//            n = numDeque.front();
+//            numDeque.pop_front();
+//        }
+//        task();
+//    }
+//}
+//
+//int main() {
+//
+//    SetConsoleCP(1251);
+//    SetConsoleOutputCP(1251);
+//
+//    std::thread workerThread(Worker);
+//    std::vector<std::pair<int, std::future<long long>>> futures;
+//
+//    std::cout << "Введіть числа n (0 для завершення):\n";
+//    int n;
+//    while (std::cin >> n && n > 0) {
+//        std::packaged_task<long long()> task([n]() { return getNthPrime(n); });
+//        std::future<long long> fut = task.get_future();
+//
+//        {
+//            std::lock_guard<std::mutex> lk(mtx);
+//            taskDeque.push_back(std::move(task));
+//            numDeque.push_back(n);
+//        }
+//        cv.notify_one();
+//
+//        futures.push_back({ n, std::move(fut) });
+//    }
+//
+//    {
+//        std::lock_guard<std::mutex> lk(mtx);
+//        done = true;
+//    }
+//    cv.notify_all();
+//
+//    workerThread.join();
+//
+//    std::cout << "\nРезультати:\n";
+//    for (auto& item : futures) {
+//        std::cout << item.first << "-е просте число: " << item.second.get() << "\n";
+//    }
+//
+//    return 0;
+//}
+//7
+
+#include <iostream>
+#include <thread>
+#include <future>
+#include <chrono>
+#include <cmath>
+#include <Windows.h>
+
+long long getNthPrime(int n) {
+    if (n <= 0) return 0;
+    int count = 0;
+    long long num = 1;
+    while (count < n) {
+        num++;
+        bool prime = true;
+        for (long long i = 2; i * i <= num; ++i) {
+            if (num % i == 0) {
+                prime = false;
+                break;
+            }
+        }
+        if (prime) {
+            count++;
+        }
+    }
+    return num;
+}
+
+// Перший потік
+void Thread1Func(int n, std::promise<long long> prom1, std::promise<bool> promSignal, std::promise<long long> prom2) {
+    long long prime1 = getNthPrime(n);
+    prom1.set_value(prime1); // Передача n-го простого числа
+
+    promSignal.set_value(true); // Сигнал для другого потоку
+
+    long long prime2 = getNthPrime(n * 10);
+    prom2.set_value(prime2); // Передача (n*10)-го простого числа
+}
+
+// Другий потік
+void Thread2Func(int n, std::future<bool> futSignal) {
+    bool signal = futSignal.get(); // Очікування сигналу від першого потоку
+    if (signal) {
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        std::cout << "Корінь з n (sqrt(" << n << ")): " << std::sqrt(n) << "\n";
+    }
+}
+
+int main() {
+
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+
+    int n;
+    std::cout << "Введіть n (номер простого числа): ";
+    if (!(std::cin >> n) || n <= 0) return 0;
+
+    std::promise<long long> prom1;
+    std::promise<bool> promSignal;
+    std::promise<long long> prom2;
+
+    std::future<long long> fut1 = prom1.get_future();
+    std::future<bool> futSignal = promSignal.get_future();
+    std::future<long long> fut2 = prom2.get_future();
+
+    std::thread t1(Thread1Func, n, std::move(prom1), std::move(promSignal), std::move(prom2));
+    std::thread t2(Thread2Func, n, std::move(futSignal));
+
+    std::cout << n << "-е просте число: " << fut1.get() << "\n";
+    std::cout << (n * 10) << "-е просте число: " << fut2.get() << "\n";
+
+    t1.join();
+    t2.join();
+
+    return 0;
+}
